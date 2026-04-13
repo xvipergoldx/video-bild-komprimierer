@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medien Kompressor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .container {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 2.5rem;
+    max-width: 560px;
+    width: 100%;
+  }
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { color: #86868b; font-size: 0.875rem; margin-bottom: 1.5rem; }
+  .dropzone {
+    border: 2px dashed #d2d2d7;
+    border-radius: 12px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: #0071e3;
+    background: #f0f5ff;
+  }
+  .dropzone-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .dropzone-text { color: #86868b; font-size: 0.9rem; }
+  .dropzone-text strong { color: #0071e3; }
+  input[type="file"] { display: none; }
+
+  .file-info {
+    background: #f5f5f7;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 1.25rem;
+    display: none;
+    font-size: 0.875rem;
+  }
+  .file-info .name { font-weight: 600; word-break: break-all; }
+  .file-info .size { color: #86868b; margin-top: 0.25rem; }
+  .file-info .type-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    margin-top: 0.35rem;
+  }
+  .type-badge.video { background: #e8d5f5; color: #8b5cf6; }
+  .type-badge.image { background: #d5eef5; color: #0891b2; }
+
+  .quality-section {
+    margin-top: 1.25rem;
+    display: none;
+  }
+  .quality-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .quality-options {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .quality-option {
+    flex: 1;
+    padding: 0.6rem 0.5rem;
+    border: 2px solid #e8e8ed;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+    font-size: 0.8rem;
+  }
+  .quality-option:hover { border-color: #0071e3; }
+  .quality-option.active { border-color: #0071e3; background: #f0f5ff; }
+  .quality-option .q-name { font-weight: 600; margin-bottom: 0.15rem; }
+  .quality-option .q-desc { color: #86868b; font-size: 0.7rem; }
+
+  .progress-section { margin-top: 1.25rem; display: none; }
+  .progress-bar-bg {
+    background: #e8e8ed;
+    border-radius: 6px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    background: #0071e3;
+    height: 100%;
+    width: 0%;
+    border-radius: 6px;
+    transition: width 0.3s;
+  }
+  .progress-text {
+    font-size: 0.8rem;
+    color: #86868b;
+    margin-top: 0.5rem;
+    min-height: 1.2em;
+  }
+
+  .result { margin-top: 1.25rem; display: none; }
+  .comparison { display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .comparison > div {
+    flex: 1;
+    background: #f5f5f7;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .comparison .label {
+    font-size: 0.75rem;
+    color: #86868b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+  .comparison .value { font-size: 1.25rem; font-weight: 600; }
+  .comparison .saved { color: #34c759; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    text-decoration: none;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #0071e3; color: #fff; }
+  .btn-success { background: #34c759; color: #fff; }
+  .btn-compress { margin-top: 1.25rem; display: none; }
+
+  .error {
+    background: #fff2f2;
+    color: #ff3b30;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    display: none;
+  }
+  .loading-msg {
+    text-align: center;
+    color: #86868b;
+    padding: 2rem;
+    font-size: 0.9rem;
+  }
+  .reset-link {
+    display: block;
+    text-align: center;
+    margin-top: 0.75rem;
+    color: #0071e3;
+    font-size: 0.85rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    text-decoration: underline;
+  }
+
+  .preview-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 0.75rem;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Medien Kompressor</h1>
+  <p class="subtitle">Fotos &amp; Videos komprimieren &mdash; direkt im Browser</p>
+
+  <div id="loadingMsg" class="loading-msg">FFmpeg wird geladen&hellip;</div>
+
+  <div id="mainUI" style="display:none">
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">&#128247; &#127909;</div>
+      <div class="dropzone-text">
+        Foto oder Video hierher ziehen<br>oder <strong>klicken zum Auswaehlen</strong>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*,video/*">
+
+    <div class="file-info" id="fileInfo">
+      <div class="name" id="fileName"></div>
+      <div class="size" id="fileSize"></div>
+      <div class="type-badge" id="typeBadge"></div>
+    </div>
+
+    <img id="previewImg" class="preview-img">
+
+    <div class="quality-section" id="qualitySection">
+      <div class="quality-label">Komprimierung</div>
+      <div class="quality-options">
+        <div class="quality-option" data-quality="light" onclick="selectQuality('light')">
+          <div class="q-name">Leicht</div>
+          <div class="q-desc">Beste Qualitaet</div>
+        </div>
+        <div class="quality-option active" data-quality="medium" onclick="selectQuality('medium')">
+          <div class="q-name">Mittel</div>
+          <div class="q-desc">Ausgewogen</div>
+        </div>
+        <div class="quality-option" data-quality="strong" onclick="selectQuality('strong')">
+          <div class="q-name">Stark</div>
+          <div class="q-desc">Kleinste Datei</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-compress" id="compressBtn" disabled>Komprimieren</button>
+
+    <div class="progress-section" id="progressSection">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text" id="progressText"></div>
+    </div>
+
+    <div class="error" id="errorBox"></div>
+
+    <div class="result" id="result">
+      <div class="comparison">
+        <div>
+          <div class="label">Vorher</div>
+          <div class="value" id="sizeBefore"></div>
+        </div>
+        <div>
+          <div class="label">Nachher</div>
+          <div class="value" id="sizeAfter"></div>
+        </div>
+        <div>
+          <div class="label">Ersparnis</div>
+          <div class="value saved" id="sizeSaved"></div>
+        </div>
+      </div>
+      <img id="resultPreview" class="preview-img">
+      <a id="downloadLink" class="btn btn-success">Herunterladen</a>
+      <button class="reset-link" id="resetBtn">Neue Datei komprimieren</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const { createFFmpeg, fetchFile } = FFmpeg;
+
+let inputFile = null;
+let fileType = null; // 'image' or 'video'
+let selectedQuality = 'medium';
+let currentCrf = 28;
+
+const ffmpeg = createFFmpeg({
+  log: true,
+  logger: ({ message }) => {
+    if (fileType !== 'video') return;
+    const timeMatch = message.match(/time=(\d+:\d+:\d+\.\d+)/);
+    if (timeMatch) {
+      $('progressText').textContent = `Komprimiere (CRF ${currentCrf})... ${timeMatch[1]}`;
+    }
+  },
+  progress: ({ ratio }) => {
+    if (fileType !== 'video') return;
+    if (ratio > 0 && ratio <= 1) {
+      $('progressFill').style.width = (10 + ratio * 80) + '%';
+    }
+  }
+});
+
+const VIDEO_SETTINGS = {
+  light:  { crf: 24, maxCrf: 34, audio: '128k', scale: false },
+  medium: { crf: 30, maxCrf: 40, audio: '96k',  scale: false },
+  strong: { crf: 36, maxCrf: 46, audio: '64k',  scale: true }
+};
+
+const IMAGE_SETTINGS = {
+  light:  { quality: 0.75, maxPx: 4000 },
+  medium: { quality: 0.5,  maxPx: 2000 },
+  strong: { quality: 0.25, maxPx: 1200 }
+};
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function showError(msg) {
+  $('errorBox').textContent = msg;
+  $('errorBox').style.display = 'block';
+}
+
+function hideError() {
+  $('errorBox').style.display = 'none';
+}
+
+window.selectQuality = function(q) {
+  selectedQuality = q;
+  document.querySelectorAll('.quality-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.quality === q);
+  });
+};
+
+// Load FFmpeg
+(async () => {
+  try {
+    await ffmpeg.load();
+    $('loadingMsg').style.display = 'none';
+    $('mainUI').style.display = 'block';
+  } catch (e) {
+    $('loadingMsg').innerHTML = `
+      <strong style="color:#ff3b30">FFmpeg konnte nicht geladen werden.</strong><br><br>
+      <span style="font-size:0.8rem">
+        Bitte mit dem lokalen Server starten:<br>
+        <code>node start.js</code> im komprimierer-Ordner<br><br>
+        Fehler: ${e.message}
+      </span>
+    `;
+  }
+})();
+
+// Drag & Drop
+const dropzone = $('dropzone');
+dropzone.addEventListener('click', () => $('fileInput').click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+$('fileInput').addEventListener('change', e => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  hideError();
+  inputFile = file;
+  fileType = file.type.startsWith('image/') ? 'image' : 'video';
+
+  $('fileName').textContent = file.name;
+  $('fileSize').textContent = formatSize(file.size);
+  $('fileInfo').style.display = 'block';
+
+  const badge = $('typeBadge');
+  if (fileType === 'image') {
+    badge.textContent = 'Foto';
+    badge.className = 'type-badge image';
+  } else {
+    badge.textContent = 'Video';
+    badge.className = 'type-badge video';
+  }
+
+  // Preview for images
+  const preview = $('previewImg');
+  if (fileType === 'image') {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+
+  $('qualitySection').style.display = 'block';
+  $('compressBtn').style.display = 'block';
+  $('compressBtn').disabled = false;
+  $('result').style.display = 'none';
+  $('progressSection').style.display = 'none';
+}
+
+function getExtension(filename) {
+  const dot = filename.lastIndexOf('.');
+  return dot >= 0 ? filename.substring(dot) : '';
+}
+
+// --- IMAGE COMPRESSION ---
+function compressImage(file, quality, maxPx) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+
+      // Scale down if larger than maxPx
+      if (Math.max(w, h) > maxPx) {
+        const ratio = maxPx / Math.max(w, h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('Komprimierung fehlgeschlagen'));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => reject(new Error('Bild konnte nicht geladen werden'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// --- VIDEO COMPRESSION ---
+async function compressVideo(file, settings) {
+  const inputName = 'input' + getExtension(file.name);
+  const outputName = 'output.mp4';
+  const TARGET_SIZE = 20 * 1024 * 1024;
+  const CRF_STEP = 3;
+
+  ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+  $('progressFill').style.width = '10%';
+
+  let crf = settings.crf;
+  const maxCrf = settings.maxCrf;
+  let outputData = null;
+
+  while (crf <= maxCrf) {
+    currentCrf = crf;
+    $('progressText').textContent = `Komprimiere mit CRF ${crf}...`;
+
+    try { ffmpeg.FS('unlink', outputName); } catch {}
+
+    const args = ['-i', inputName, '-c:v', 'libx264', '-crf', String(crf), '-preset', 'ultrafast'];
+    if (settings.scale) args.push('-vf', 'scale=-2:720');
+    args.push('-c:a', 'aac', '-b:a', settings.audio, '-movflags', '+faststart', '-y', outputName);
+
+    await ffmpeg.run(...args);
+    outputData = ffmpeg.FS('readFile', outputName);
+
+    if (outputData.length <= TARGET_SIZE) break;
+
+    if (crf >= maxCrf) {
+      // Final attempt with scale down
+      if (!settings.scale) {
+        $('progressText').textContent = 'Skaliere Video herunter...';
+        try { ffmpeg.FS('unlink', outputName); } catch {}
+
+        await ffmpeg.run(
+          '-i', inputName, '-c:v', 'libx264', '-crf', String(maxCrf),
+          '-preset', 'ultrafast', '-vf', 'scale=-2:720',
+          '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', '-y', outputName
+        );
+        outputData = ffmpeg.FS('readFile', outputName);
+      }
+      break;
+    }
+
+    crf += CRF_STEP;
+  }
+
+  // Cleanup
+  try { ffmpeg.FS('unlink', inputName); } catch {}
+  try { ffmpeg.FS('unlink', outputName); } catch {}
+
+  return new Blob([outputData], { type: 'video/mp4' });
+}
+
+// --- COMPRESS BUTTON ---
+$('compressBtn').addEventListener('click', async () => {
+  if (!inputFile) return;
+  hideError();
+
+  $('compressBtn').disabled = true;
+  $('progressSection').style.display = 'block';
+  $('progressFill').style.width = '0%';
+  $('result').style.display = 'none';
+
+  try {
+    let blob;
+    let downloadName;
+
+    if (fileType === 'image') {
+      $('progressText').textContent = 'Foto wird komprimiert...';
+      $('progressFill').style.width = '50%';
+
+      const settings = IMAGE_SETTINGS[selectedQuality];
+      blob = await compressImage(inputFile, settings.quality, settings.maxPx);
+      downloadName = inputFile.name.replace(/\.[^.]+$/, '') + '_komprimiert.jpg';
+    } else {
+      $('progressText').textContent = 'Video wird vorbereitet...';
+      const settings = VIDEO_SETTINGS[selectedQuality];
+      blob = await compressVideo(inputFile, settings);
+      downloadName = inputFile.name.replace(/\.[^.]+$/, '') + '_komprimiert.mp4';
+    }
+
+    $('progressFill').style.width = '100%';
+    $('progressText').textContent = 'Fertig!';
+
+    const originalSize = inputFile.size;
+    const compressedSize = blob.size;
+    const saved = Math.round((1 - compressedSize / originalSize) * 100);
+
+    $('sizeBefore').textContent = formatSize(originalSize);
+    $('sizeAfter').textContent = formatSize(compressedSize);
+    $('sizeSaved').textContent = saved + '%';
+
+    if (fileType === 'video' && compressedSize > 20 * 1024 * 1024) {
+      $('sizeAfter').style.color = '#ff9500';
+      showError(`Die Datei ist mit ${formatSize(compressedSize)} noch ueber 20 MB.`);
+    } else {
+      $('sizeAfter').style.color = '';
+    }
+
+    const url = URL.createObjectURL(blob);
+    const dl = $('downloadLink');
+    dl.href = url;
+    dl.download = downloadName;
+
+    // Show result preview for images
+    const resultPreview = $('resultPreview');
+    if (fileType === 'image') {
+      resultPreview.src = url;
+      resultPreview.style.display = 'block';
+    } else {
+      resultPreview.style.display = 'none';
+    }
+
+    $('result').style.display = 'block';
+
+  } catch (err) {
+    showError('Fehler: ' + err.message);
+    $('progressSection').style.display = 'none';
+  }
+
+  $('compressBtn').disabled = false;
+});
+
+// Reset
+$('resetBtn').addEventListener('click', () => {
+  inputFile = null;
+  fileType = null;
+  $('fileInput').value = '';
+  $('fileInfo').style.display = 'none';
+  $('qualitySection').style.display = 'none';
+  $('compressBtn').style.display = 'none';
+  $('progressSection').style.display = 'none';
+  $('result').style.display = 'none';
+  $('previewImg').style.display = 'none';
+  $('resultPreview').style.display = 'none';
+  hideError();
+});
+</script>
+
+</body>
+</html>
