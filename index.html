@@ -268,7 +268,7 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/coi-serviceworker@0.1.7/coi-serviceworker.min.js"></script>
+<script src="coi-serviceworker.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
@@ -340,8 +340,8 @@ window.selectQuality = function(q) {
     $('loadingMsg').innerHTML = `
       <strong style="color:#ff3b30">FFmpeg konnte nicht geladen werden.</strong><br><br>
       <span style="font-size:0.8rem">
-        Bitte mit dem lokalen Server starten:<br>
-        <code>node start.js</code> im komprimierer-Ordner<br><br>
+        Bitte die Seite einmal neu laden.<br>
+        Falls der Fehler bestehen bleibt, wird dein Browser moeglicherweise nicht unterstuetzt.<br><br>
         Fehler: ${e.message}
       </span>
     `;
