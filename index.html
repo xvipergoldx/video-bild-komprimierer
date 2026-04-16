@@ -452,7 +452,7 @@ async function compressVideo(file, settings) {
 
     try { ffmpeg.FS('unlink', outputName); } catch {}
 
-    const args = ['-i', inputName, '-c:v', 'libx264', '-crf', String(crf), '-preset', 'ultrafast'];
+    const args = ['-i', inputName, '-c:v', 'libx264', '-profile:v', 'main', '-pix_fmt', 'yuv420p', '-crf', String(crf), '-preset', 'ultrafast'];
     if (settings.scale) args.push('-vf', 'scale=-2:720');
     args.push('-c:a', 'aac', '-b:a', settings.audio, '-movflags', '+faststart', '-y', outputName);
 
@@ -468,7 +468,7 @@ async function compressVideo(file, settings) {
         try { ffmpeg.FS('unlink', outputName); } catch {}
 
         await ffmpeg.run(
-          '-i', inputName, '-c:v', 'libx264', '-crf', String(maxCrf),
+          '-i', inputName, '-c:v', 'libx264', '-profile:v', 'main', '-pix_fmt', 'yuv420p', '-crf', String(maxCrf),
           '-preset', 'ultrafast', '-vf', 'scale=-2:720',
           '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', '-y', outputName
         );
